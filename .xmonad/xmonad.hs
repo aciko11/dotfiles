@@ -1,4 +1,4 @@
--- Base
+  -- Base
 import XMonad
 import System.Directory
 import System.IO (hClose, hPutStr, hPutStrLn)
@@ -64,6 +64,7 @@ import qualified XMonad.Layout.MultiToggle as MT (Toggle(..))
    -- Utilities
 import XMonad.Util.Dmenu
 import XMonad.Util.EZConfig (additionalKeysP, mkNamedKeymap)
+import XMonad.Util.Hacks (windowedFullscreenFixEventHook, javaHack, trayerAboveXmobarEventHook, trayAbovePanelEventHook, trayerPaddingXmobarEventHook, trayPaddingXmobarEventHook, trayPaddingEventHook)
 import XMonad.Util.NamedActions
 import XMonad.Util.NamedScratchpad
 import XMonad.Util.Run (runProcessWithInput, safeSpawn, spawnPipe)
@@ -85,14 +86,7 @@ import Colors.DoomOne
 
 
 
-
-
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
------------------------- Variables ----------------------------------------------
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
-
+---------------------------------------------------------------------------------------------------
 
 myFont :: String
 myFont = "xft:SauceCodePro Nerd Font Mono:regular:size=9:antialias=true:hinting=true"
@@ -104,14 +98,11 @@ myTerminal :: String
 myTerminal = "terminator"    -- Sets default terminal
 
 myBrowser :: String
-myBrowser = "firefox "  -- Sets qutebrowser as browser
-
-myEmacs :: String
-myEmacs = "emacsclient -c -a 'emacs' "  -- Makes emacs keybindings easier to type
+myBrowser = "brave"  -- Sets brave as browser
 
 myEditor :: String
--- myEditor = "emacsclient -c -a 'emacs' "  -- Sets emacs as editor
-myEditor = myTerminal ++ " -e vim "    -- Sets vim as editor
+myEditor = "nvim"  -- Sets emacs as editor
+-- myEditor = myTerminal ++ " -e vim "    -- Sets vim as editor
 
 myBorderWidth :: Dimension
 myBorderWidth = 2           -- Sets border width for windows
@@ -125,41 +116,31 @@ myFocusColor  = color15     -- This variable is imported from Colors.THEME
 mySoundPlayer :: String
 mySoundPlayer = "ffplay -nodisp -autoexit " -- The program that will play system sounds
 
-windowCount :: X (Maybe String)
-windowCount = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset
+--windowCount :: X (Maybe String)
+--windowCount = gets $ Just . show . length . W.integrate' . W.stack . W.workspace . W.current . windowset
 
 
 
-
-
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
------------------------- Autostart ----------------------------------------------
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
-
+---------------------------------------------------------------------------------------------------
 
 myStartupHook :: X ()
 myStartupHook = do
-  spawnOnce (mySoundPlayer ++ startupSound)
-  spawn "killall conky"   -- kill current conky on each restart
-  spawn "killall trayer"  -- kill current trayer on each restart
+--  spawnOnce (mySoundPlayer ++ startupSound)
+  spawn "killall stalonetray"  -- kill current trayer on each restart
+  spawn "killall dunst"        -- kill dunst daemon
 
-  spawnOnce "lxsession"
--- spawnOnce "picom"
+--spawnOnce "lxsession"
+  spawnOnce "picom"
+  spawnOnce "nm-applet"
   spawnOnce "volumeicon"
--- spawn "/usr/bin/emacs --daemon" -- emacs daemon for the emacsclient
+  spawnOnce "cbatticon"
+  spawnOnce "dunst"
+  spawnOnce "notify-log $HOME/.log/notify.log"
 
-  spawn ("sleep 2 && conky -c $HOME/.config/conky/xmonad/" ++ colorScheme ++ "-01.conkyrc")
-  spawn ("sleep 2 && trayer --edge top --align right --widthtype request --padding 6 --SetDockType true --SetPartialStrut true --expand true --monitor 1 --transparent true --alpha 0 " ++ colorTrayer ++ " --height 22")
+  spawn ("sleep 2 && stalonetray")
 
 
-
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
------------------------- Layouts ----------------------------------------------
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
+----------------------------- Layout Hooks ----------------
 
 --Makes setting the spacingRaw simpler to write. The spacingRaw module adds a configurable amount of space around windows.
 mySpacing :: Integer -> l a -> XMonad.Layout.LayoutModifier.ModifiedLayout Spacing l a
@@ -179,7 +160,7 @@ tall     = renamed [Replace "tall"]
            $ windowNavigation
            $ addTabs shrinkText myTabTheme
            $ subLayout [] (smartBorders Simplest)
-           $ mySpacing 0
+           $ mySpacing 2
            $ ResizableTall 1 (3/100) (1/2) []
 monocle  = renamed [Replace "monocle"]
            $ smartBorders
@@ -196,7 +177,7 @@ grid     = renamed [Replace "grid"]
            $ windowNavigation
            $ addTabs shrinkText myTabTheme
            $ subLayout [] (smartBorders Simplest)
-           $ mySpacing 0
+           $ mySpacing 3
            $ mkToggle (single MIRROR)
            $ Grid (16/10)
 spirals  = renamed [Replace "spirals"]
@@ -205,7 +186,7 @@ spirals  = renamed [Replace "spirals"]
            $ windowNavigation
            $ addTabs shrinkText myTabTheme
            $ subLayout [] (smartBorders Simplest)
-           $ mySpacing' 0
+           $ mySpacing' 3
            $ spiral (6/7)
 threeCol = renamed [Replace "threeCol"]
            $ limitWindows 7
@@ -244,13 +225,13 @@ myTabTheme = def { fontName            = myFont
                  }
 
 -- Theme for showWName which prints current workspace when you change workspaces.
-myShowWNameTheme :: SWNConfig
-myShowWNameTheme = def
-  { swn_font              = "xft:Ubuntu:bold:size=60"
-  , swn_fade              = 1.0
-  , swn_bgcolor           = "#1c1f24"
-  , swn_color             = "#ffffff"
-  }
+--myShowWNameTheme :: SWNConfig
+--myShowWNameTheme = def
+--  { swn_font              = "xft:Ubuntu:bold:size=60"
+--  , swn_fade              = 1.0
+--  , swn_bgcolor           = "#1c1f24"
+--  , swn_color             = "#ffffff"
+--  }
 
 -- The layout hook
 myLayoutHook = avoidStruts
@@ -271,28 +252,31 @@ myLayoutHook = avoidStruts
                                            ||| wideAccordion
 
 
-
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
------------------------- Workspaces ----------------------------------------------
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------
 
 
--- myWorkspaces = [" 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " 6 ", " 7 ", " 8 ", " 9 "]
 myWorkspaces = [" 1 ", " 2 ", " 3 ", " 4 ", " 5 ", " 6 ", " 7 ", " 8 ", " 9 "]
+--myWorkspaces = [" dev ", " www ", " sys ", " doc ", " vbox ", " chat ", " mus ", " vid ", " gfx "]
+-- myWorkspaces =
+--         " 1 : <fn=2>\xf111</fn> " :
+--         " 2 : <fn=2>\xf1db</fn> " :
+--         " 3 : <fn=2>\xf192</fn> " :
+--         " 4 : <fn=2>\xf025</fn> " :
+--         " 5 : <fn=2>\xf03d</fn> " :
+--         " 6 : <fn=2>\xf1e3</fn> " :
+--         " 7 : <fn=2>\xf07b</fn> " :
+--         " 8 : <fn=2>\xf21b</fn> " :
+--         " 9 : <fn=2>\xf21e</fn> " :
+--         []
 myWorkspaceIndices = M.fromList $ zipWith (,) myWorkspaces [1..] -- (,) == \x y -> (x,y)
 
-clickable ws = "<action=xdotool key super+"++show i++">"++ws++"</action>"
-    where i = fromJust $ M.lookup ws myWorkspaceIndices
+--clickable ws = "<action=xdotool key super+"++show i++">"++ws++"</action>"
+--    where i = fromJust $ M.lookup ws myWorkspaceIndices
+--
 
 
 
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
------------------------- Managehook ----------------------------------------------
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
+------------------------------------------------------------------
 
 
 myManageHook :: XMonad.Query (Data.Monoid.Endo WindowSet)
@@ -301,87 +285,89 @@ myManageHook = composeAll
   -- using 'doShift ( myWorkspaces !! 7)' sends program to workspace 8!
   -- I'm doing it this way because otherwise I would have to write out the full
   -- name of my workspaces and the names would be very long if using clickable workspaces.
-  [ className =? "confirm"         --> doFloat
-  , className =? "file_progress"   --> doFloat
-  , className =? "dialog"          --> doFloat
-  , className =? "download"        --> doFloat
-  , className =? "error"           --> doFloat
-  , className =? "Gimp"            --> doFloat
-  , className =? "notification"    --> doFloat
-  , className =? "pinentry-gtk-2"  --> doFloat
-  , className =? "splash"          --> doFloat
-  , className =? "toolbar"         --> doFloat
-  , className =? "Yad"             --> doCenterFloat
-  , title =? "Oracle VM VirtualBox Manager"  --> doFloat
-  --, title =? "Mozilla Firefox"     --> doShift ( myWorkspaces !! 1 )
-  --, className =? "Brave-browser"   --> doShift ( myWorkspaces !! 1 )
-  --, className =? "mpv"             --> doShift ( myWorkspaces !! 7 )
-  --, className =? "Gimp"            --> doShift ( myWorkspaces !! 8 )
-  --, className =? "VirtualBox Manager" --> doShift  ( myWorkspaces !! 4 )
-  , (className =? "firefox" <&&> resource =? "Dialog") --> doFloat  -- Float Firefox Dialog
-  , isFullscreen -->  doFullFloat
+  [ className =? "Zoom"         --> doFloat
   ]
 
 
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
------------------------- Sounds ----------------------------------------------
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
 
-soundDir = "/opt/dtos-sounds/" -- The directory that has the sound files
+  ---------------------------------------------------------------------
 
-startupSound  = soundDir ++ "startup-01.mp3"
-shutdownSound = soundDir ++ "shutdown-01.mp3"
-dmenuSound    = soundDir ++ "menu-01.mp3"
+subtitle' ::  String -> ((KeyMask, KeySym), NamedAction)
+subtitle' x = ((0,0), NamedAction $ map toUpper
+                      $ sep ++ "\n-- " ++ x ++ " --\n" ++ sep)
+  where
+    sep = replicate (6 + length x) '-'
+
+showKeybindings :: [((KeyMask, KeySym), NamedAction)] -> NamedAction
+showKeybindings x = addName "Show Keybindings" $ io $ do
+  h <- spawnPipe $ "yad --text-info --fontname=\"SauceCodePro Nerd Font Mono 12\" --fore=#46d9ff back=#282c36 --center --geometry=1200x800 --title \"XMonad keybindings\""
+  --hPutStr h (unlines $ showKm x) -- showKM adds ">>" before subtitles
+  hPutStr h (unlines $ showKmSimple x) -- showKmSimple doesn't add ">>" to subtitles
+  hClose h
+  return ()
 
 
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
------------------------- Main ----------------------------------------------
----------------------------------------------------------------------------------
----------------------------------------------------------------------------------
+-------------------------------------------------------------
+myKeys :: XConfig l0 -> [((KeyMask, KeySym), NamedAction)]
+myKeys c =
+  --(subtitle "Custom Keys":) $ mkNamedKeymap c $
+  let subKeys str ks = subtitle' str : mkNamedKeymap c ks in
+  subKeys "Xmonad Essentials"
+  [ ("M-C-r", addName "Recompile XMonad"       $ spawn "xmonad --recompile")
+  , ("M-S-r", addName "Restart XMonad"         $ spawn "xmonad --restart")
+  , ("M-S-l", addName "Lock Screen"            $ spawn "betterlockscreen -l")
+  ]
+
+
+
+
+
+
+-----------------------------------------------
+
 
 main :: IO ()
 main = do
   -- Launching three instances of xmobar on their monitors.
-  xmproc0 <- spawnPipe ("xmobar -x 0 $HOME/.config/xmobar/" ++ colorScheme ++ "-xmobarrc")
-  xmproc1 <- spawnPipe ("xmobar -x 1 $HOME/.config/xmobar/" ++ colorScheme ++ "-xmobarrc")
-  xmproc2 <- spawnPipe ("xmobar -x 2 $HOME/.config/xmobar/" ++ colorScheme ++ "-xmobarrc")
+  xmproc0 <- spawnPipe ("xmobar -x 0 $HOME/.config/xmobar/" ++ ".xmobarrc")
+  -- xmproc1 <- spawnPipe ("xmobar -x 1 $HOME/.config/xmobar/" ++ colorScheme ++ "-xmobarrc")
+  -- xmproc2 <- spawnPipe ("xmobar -x 2 $HOME/.config/xmobar/" ++ colorScheme ++ "-xmobarrc")
   -- the xmonad, ya know...what the WM is named after!
   xmonad $ ewmh $ docks $ def
     { manageHook         = myManageHook <+> manageDocks
-    , handleEventHook    = swallowEventHook (className =? "Alacritty"  <||> className =? "st-256color" <||> className =? "XTerm") (return True)
+    , handleEventHook    = windowedFullscreenFixEventHook <> swallowEventHook (className =? "Alacritty"  <||> className =? "st-256color" <||> className =? "XTerm") (return True) <> trayerPaddingXmobarEventHook
     , modMask            = myModMask
     , terminal           = myTerminal
     , startupHook        = myStartupHook
-    , layoutHook         = showWName' myShowWNameTheme $ myLayoutHook
+    , layoutHook         = myLayoutHook
     , workspaces         = myWorkspaces
     , borderWidth        = myBorderWidth
     , normalBorderColor  = myNormColor
     , focusedBorderColor = myFocusColor
     , logHook = dynamicLogWithPP $  filterOutWsPP [scratchpadWorkspaceTag] $ xmobarPP
         { ppOutput = \x -> hPutStrLn xmproc0 x   -- xmobar on monitor 1
-                        >> hPutStrLn xmproc1 x   -- xmobar on monitor 2
-                        >> hPutStrLn xmproc2 x   -- xmobar on monitor 3
+--                        >> hPutStrLn xmproc1 x   -- xmobar on monitor 2
+--                        >> hPutStrLn xmproc2 x   -- xmobar on monitor 3
         , ppCurrent = xmobarColor color06 "" . wrap
                       ("<box type=Bottom width=2 mb=2 color=" ++ color06 ++ ">") "</box>"
           -- Visible but not current workspace
-        , ppVisible = xmobarColor color06 "" . clickable
+        , ppVisible = xmobarColor color06 "" 
           -- Hidden workspace
         , ppHidden = xmobarColor color05 "" . wrap
-                     ("<box type=Top width=2 mt=2 color=" ++ color05 ++ ">") "</box>" . clickable
+                     ("<box type=Top width=2 mt=2 color=" ++ color05 ++ ">") "</box>" 
           -- Hidden workspaces (no windows)
-        , ppHiddenNoWindows = xmobarColor color05 ""  . clickable
+        , ppHiddenNoWindows = xmobarColor color05 ""
           -- Title of active window
-        , ppTitle = xmobarColor color16 "" . shorten 60
+        --, ppTitle = xmobarColor color16 "" . shorten 60
           -- Separator character
         , ppSep =  "<fc=" ++ color09 ++ "> <fn=1>|</fn> </fc>"
           -- Urgent workspace
         , ppUrgent = xmobarColor color02 "" . wrap "!" "!"
           -- Adding # of windows on current workspace to the bar
-        , ppExtras  = [windowCount]
+        --, ppExtras  = [windowCount]
           -- order of things in xmobar
-        , ppOrder  = \(ws:l:t:ex) -> [ws,l]++ex++[t]
+        , ppOrder  = \(ws:l:_:ex) -> [ws,l]++ex
         }
-    }
+    } `additionalKeysP`
+    [ ("M-S-l", spawn "betterlockscreen -l")
+    ]
