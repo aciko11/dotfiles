@@ -1,6 +1,15 @@
 # dotfiles
+install yay <br>
 install network manager <br>
 install network manager applet <br>
+install batteryicon <br>
+install nitrogen <br>
+install xf86-input-synaptics (touchpad input) <br> 
+
+# Neovim
+install neovim <br>
+
+
 add the network manager applet to xmonad.hs to run it at startup <br>
 install sudo <br>
 check tutorial https://www.youtube.com/watch?v=JmPLbZQRgas&t=602s to install xmonad, xmobar, etc... <br>
